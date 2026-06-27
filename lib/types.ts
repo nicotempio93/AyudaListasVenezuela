@@ -19,6 +19,7 @@ export interface ListRow {
   file_type: string | null
   status: ListStatus
   whatsapp_group: string | null
+  assignment_type: 'records' | 'pages'
   range_start: number | null
   range_end: number | null
   block_size: number | null

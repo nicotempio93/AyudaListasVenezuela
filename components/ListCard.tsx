@@ -134,7 +134,7 @@ export function ListCard({ list, onRefresh }: Props) {
           <div>
             <div className="flex justify-between items-center mb-1">
               <span className="text-xs text-gray-500">
-                {coveredRecords?.toLocaleString() ?? 0} / {totalRecords?.toLocaleString()} registros cubiertos
+                {coveredRecords?.toLocaleString() ?? 0} / {totalRecords?.toLocaleString()} {list.assignment_type === 'pages' ? 'páginas cubiertas' : 'registros cubiertos'}
                 <span className="text-gray-400"> ({list.range_start.toLocaleString()}–{list.range_end.toLocaleString()})</span>
               </span>
               <span className="text-xs font-semibold text-gray-600">{coveragePct ?? 0}%</span>
@@ -147,7 +147,7 @@ export function ListCard({ list, onRefresh }: Props) {
             </div>
             {list.block_size && (
               <p className="text-xs text-gray-400 mt-1">
-                Bloques de {list.block_size.toLocaleString()} registros por persona
+                {list.block_size.toLocaleString()} {list.assignment_type === 'pages' ? 'páginas' : 'registros'} por persona
               </p>
             )}
           </div>
@@ -176,7 +176,7 @@ export function ListCard({ list, onRefresh }: Props) {
                       </div>
                       {p.range_from != null && p.range_to != null && (
                         <p className={`text-xs font-semibold ${done ? 'text-green-600' : 'text-blue-600'}`}>
-                          Registros {p.range_from.toLocaleString()} – {p.range_to.toLocaleString()}
+                          {list.assignment_type === 'pages' ? 'Páginas' : 'Registros'} {p.range_from.toLocaleString()} – {p.range_to.toLocaleString()}
                           {done && ' · Completado'}
                         </p>
                       )}
@@ -282,8 +282,8 @@ export function ListCard({ list, onRefresh }: Props) {
       </div>
 
       {showJoin && (
-        <JoinModal listId={list.id} listTitle={list.title} currentWhatsapp={list.whatsapp_group}
-          onConfirm={handleJoin} onClose={() => setShowJoin(false)} />
+        <JoinModal listId={list.id} listTitle={list.title} assignmentType={list.assignment_type}
+          currentWhatsapp={list.whatsapp_group} onConfirm={handleJoin} onClose={() => setShowJoin(false)} />
       )}
       {showComplete && (
         <CompleteModal listTitle={list.title} onConfirm={handleComplete} onClose={() => setShowComplete(false)} />

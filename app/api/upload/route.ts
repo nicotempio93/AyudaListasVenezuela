@@ -5,6 +5,7 @@ export async function POST(request: Request) {
   const formData = await request.formData()
   const file = formData.get('file') as File | null
   const title = formData.get('title') as string | null
+  const assignmentType = (formData.get('assignment_type') as string | null) ?? 'records'
   const rangeStartRaw = formData.get('range_start') as string | null
   const rangeEndRaw = formData.get('range_end') as string | null
   const blockSizeRaw = formData.get('block_size') as string | null
@@ -37,6 +38,7 @@ export async function POST(request: Request) {
       file_path: safeName,
       file_url: urlData.publicUrl,
       file_type: ext.toLowerCase(),
+      assignment_type: assignmentType,
       range_start: range_start ?? null,
       range_end: range_end ?? null,
       block_size: block_size ?? null,

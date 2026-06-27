@@ -4,12 +4,13 @@ import { useState, useEffect } from 'react'
 interface Props {
   listId: string
   listTitle: string
+  assignmentType: 'records' | 'pages'
   currentWhatsapp: string | null
   onConfirm: (name: string, contact: string, whatsapp: string) => Promise<void>
   onClose: () => void
 }
 
-export function JoinModal({ listId, listTitle, currentWhatsapp, onConfirm, onClose }: Props) {
+export function JoinModal({ listId, listTitle, assignmentType, currentWhatsapp, onConfirm, onClose }: Props) {
   const [name, setName] = useState('')
   const [contact, setContact] = useState('')
   const [whatsapp, setWhatsapp] = useState(currentWhatsapp ?? '')
@@ -46,7 +47,7 @@ export function JoinModal({ listId, listTitle, currentWhatsapp, onConfirm, onClo
         {/* Range preview */}
         {nextRange?.range_from != null && nextRange?.range_to != null && (
           <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 mb-4">
-            <p className="text-sm font-semibold text-blue-800">Registros asignados automáticamente:</p>
+            <p className="text-sm font-semibold text-blue-800">{assignmentType === 'pages' ? 'Páginas' : 'Registros'} asignados automáticamente:</p>
             <p className="text-2xl font-bold text-blue-700 mt-0.5">
               {nextRange.range_from.toLocaleString()} — {nextRange.range_to.toLocaleString()}
             </p>
