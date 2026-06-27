@@ -191,21 +191,21 @@ export function ListCard({ list, onRefresh }: Props) {
                         {!done ? (
                           <button
                             onClick={() => setCompleteParticipant({ id: p.id, name: p.name })}
-                            className="text-xs text-green-700 hover:text-green-900 px-2 py-1 rounded hover:bg-green-100 whitespace-nowrap"
+                            className="text-xs font-medium text-green-700 border border-green-300 bg-green-50 hover:bg-green-100 px-2.5 py-1 rounded-lg whitespace-nowrap"
                           >
                             Terminé
                           </button>
                         ) : (
                           <button
                             onClick={() => handleParticipantUncomplete(p.id)}
-                            className="text-xs text-gray-400 hover:text-gray-600 px-2 py-1 rounded hover:bg-gray-100 whitespace-nowrap"
+                            className="text-xs font-medium text-gray-500 border border-gray-300 bg-white hover:bg-gray-50 px-2.5 py-1 rounded-lg whitespace-nowrap"
                           >
                             Deshacer
                           </button>
                         )}
                         <button
                           onClick={() => setLeaveParticipant({ id: p.id, name: p.name })}
-                          className="text-xs text-red-500 hover:text-red-700 px-2 py-1 rounded hover:bg-red-50 whitespace-nowrap"
+                          className="text-xs font-medium text-red-600 border border-red-300 bg-red-50 hover:bg-red-100 px-2.5 py-1 rounded-lg whitespace-nowrap"
                         >
                           Salir
                         </button>
