@@ -39,7 +39,10 @@ export function ListCard({ list, onRefresh }: Props) {
   const isCompleted = list.status === 'completed'
 
   // Coverage calculation
-  const coveredRecords = list.total_records
+  const totalRecords = list.range_start != null && list.range_end != null
+    ? list.range_end - list.range_start + 1
+    : null
+  const coveredRecords = totalRecords != null
     ? participants.reduce((sum, p) => {
         if (p.range_from != null && p.range_to != null) {
           return sum + (p.range_to - p.range_from + 1)
@@ -47,8 +50,8 @@ export function ListCard({ list, onRefresh }: Props) {
         return sum
       }, 0)
     : null
-  const coveragePct = list.total_records && coveredRecords != null
-    ? Math.min(100, Math.round((coveredRecords / list.total_records) * 100))
+  const coveragePct = totalRecords && coveredRecords != null
+    ? Math.min(100, Math.round((coveredRecords / totalRecords) * 100))
     : null
 
   async function handleJoin(name: string, contact: string, whatsapp: string) {
@@ -115,11 +118,12 @@ export function ListCard({ list, onRefresh }: Props) {
         </div>
 
         {/* Coverage bar */}
-        {list.total_records != null && (
+        {list.range_start != null && list.range_end != null && (
           <div>
             <div className="flex justify-between items-center mb-1">
               <span className="text-xs text-gray-500">
-                {coveredRecords?.toLocaleString() ?? 0} / {list.total_records.toLocaleString()} registros cubiertos
+                {coveredRecords?.toLocaleString() ?? 0} / {totalRecords?.toLocaleString()} registros cubiertos
+                <span className="text-gray-400"> ({list.range_start.toLocaleString()}–{list.range_end.toLocaleString()})</span>
               </span>
               <span className="text-xs font-semibold text-gray-600">{coveragePct ?? 0}%</span>
             </div>

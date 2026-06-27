@@ -18,7 +18,8 @@ export interface ListRow {
   file_type: string | null
   status: ListStatus
   whatsapp_group: string | null
-  total_records: number | null
+  range_start: number | null
+  range_end: number | null
   block_size: number | null
   // legacy fields kept for DB compat
   claimed_by: string | null

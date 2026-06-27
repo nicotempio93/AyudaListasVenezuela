@@ -5,10 +5,12 @@ export async function POST(request: Request) {
   const formData = await request.formData()
   const file = formData.get('file') as File | null
   const title = formData.get('title') as string | null
-  const totalRecordsRaw = formData.get('total_records') as string | null
+  const rangeStartRaw = formData.get('range_start') as string | null
+  const rangeEndRaw = formData.get('range_end') as string | null
   const blockSizeRaw = formData.get('block_size') as string | null
 
-  const total_records = totalRecordsRaw ? parseInt(totalRecordsRaw, 10) : null
+  const range_start = rangeStartRaw ? parseInt(rangeStartRaw, 10) : null
+  const range_end = rangeEndRaw ? parseInt(rangeEndRaw, 10) : null
   const block_size = blockSizeRaw ? parseInt(blockSizeRaw, 10) : null
 
   if (!file || !title) {
@@ -19,26 +21,24 @@ export async function POST(request: Request) {
 
   const ext = file.name.split('.').pop() ?? ''
   const safeName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`
-  const filePath = safeName
 
   const { error: uploadError } = await supabase.storage
     .from('lists')
-    .upload(filePath, file, { upsert: false })
+    .upload(safeName, file, { upsert: false })
 
-  if (uploadError) {
-    return NextResponse.json({ error: uploadError.message }, { status: 500 })
-  }
+  if (uploadError) return NextResponse.json({ error: uploadError.message }, { status: 500 })
 
-  const { data: urlData } = supabase.storage.from('lists').getPublicUrl(filePath)
+  const { data: urlData } = supabase.storage.from('lists').getPublicUrl(safeName)
 
   const { data, error } = await supabase
     .from('lists')
     .insert({
       title,
-      file_path: filePath,
+      file_path: safeName,
       file_url: urlData.publicUrl,
       file_type: ext.toLowerCase(),
-      total_records: total_records ?? null,
+      range_start: range_start ?? null,
+      range_end: range_end ?? null,
       block_size: block_size ?? null,
     })
     .select()

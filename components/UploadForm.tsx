@@ -11,7 +11,8 @@ export function UploadForm({ onUploaded }: Props) {
   const [open, setOpen] = useState(false)
   const [file, setFile] = useState<File | null>(null)
   const [title, setTitle] = useState('')
-  const [totalRecords, setTotalRecords] = useState('')
+  const [rangeStart, setRangeStart] = useState('')
+  const [rangeEnd, setRangeEnd] = useState('')
   const [blockSize, setBlockSize] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -23,29 +24,44 @@ export function UploadForm({ onUploaded }: Props) {
     if (f && !title) setTitle(f.name.replace(/\.[^.]+$/, ''))
   }
 
-  function handleTotalRecordsChange(val: string) {
-    setTotalRecords(val)
-    const n = parseInt(val, 10)
-    if (n > 0 && !blockSize) {
-      setBlockSize(String(Math.ceil(n / 10)))
-    }
+  function recalcBlockSize(start: string, end: string) {
+    const s = parseInt(start, 10)
+    const e = parseInt(end, 10)
+    if (s > 0 && e > s) setBlockSize(String(Math.ceil((e - s + 1) / 10)))
+  }
+
+  function handleRangeStartChange(val: string) {
+    setRangeStart(val)
+    recalcBlockSize(val, rangeEnd)
+  }
+
+  function handleRangeEndChange(val: string) {
+    setRangeEnd(val)
+    recalcBlockSize(rangeStart, val)
   }
 
   function close() {
     setOpen(false); setFile(null); setTitle('')
-    setTotalRecords(''); setBlockSize(''); setError('')
+    setRangeStart(''); setRangeEnd(''); setBlockSize(''); setError('')
     if (inputRef.current) inputRef.current.value = ''
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!file || !title.trim()) { setError('Archivo y título requeridos.'); return }
+    const s = parseInt(rangeStart, 10)
+    const en = parseInt(rangeEnd, 10)
+    if (rangeStart && rangeEnd && s >= en) {
+      setError('"Hasta" debe ser mayor que "Desde".')
+      return
+    }
     setLoading(true)
     setError('')
     const fd = new FormData()
     fd.append('file', file)
     fd.append('title', title.trim())
-    if (totalRecords) fd.append('total_records', totalRecords)
+    if (rangeStart) fd.append('range_start', rangeStart)
+    if (rangeEnd) fd.append('range_end', rangeEnd)
     if (blockSize) fd.append('block_size', blockSize)
     const res = await fetch('/api/upload', { method: 'POST', body: fd })
     const json = await res.json()
@@ -54,6 +70,10 @@ export function UploadForm({ onUploaded }: Props) {
     setLoading(false)
     onUploaded()
   }
+
+  const totalRecords = rangeStart && rangeEnd
+    ? parseInt(rangeEnd, 10) - parseInt(rangeStart, 10) + 1
+    : null
 
   if (!open) {
     return (
@@ -96,55 +116,59 @@ export function UploadForm({ onUploaded }: Props) {
             />
           </div>
 
-          <div className="flex gap-3">
-            <div className="flex-1">
-              <label className="block text-sm font-medium mb-1">
-                Total de registros <span className="text-gray-400 font-normal">(opcional)</span>
-              </label>
+          <div>
+            <label className="block text-sm font-medium mb-1">
+              Rango de registros <span className="text-gray-400 font-normal">(opcional)</span>
+            </label>
+            <div className="flex gap-2 items-center">
               <input
                 type="number"
-                min="1"
-                className="w-full border rounded-lg px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Ej: 1000"
-                value={totalRecords}
-                onChange={e => handleTotalRecordsChange(e.target.value)}
+                min="0"
+                className="flex-1 border rounded-lg px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Desde"
+                value={rangeStart}
+                onChange={e => handleRangeStartChange(e.target.value)}
+              />
+              <span className="text-gray-400 font-medium">–</span>
+              <input
+                type="number"
+                min="0"
+                className="flex-1 border rounded-lg px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Hasta"
+                value={rangeEnd}
+                onChange={e => handleRangeEndChange(e.target.value)}
               />
             </div>
-            <div className="flex-1">
+          </div>
+
+          {totalRecords != null && totalRecords > 0 && (
+            <div>
               <label className="block text-sm font-medium mb-1">
                 Registros por persona
               </label>
               <input
                 type="number"
                 min="1"
-                className="w-full border rounded-lg px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-400"
-                placeholder="Auto"
+                className="w-full border rounded-lg px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
                 value={blockSize}
                 onChange={e => setBlockSize(e.target.value)}
-                disabled={!totalRecords}
               />
+              <p className="text-xs text-blue-700 bg-blue-50 rounded-lg px-3 py-2 mt-2">
+                {totalRecords.toLocaleString()} registros en total · bloques de {blockSize || '?'} por persona
+              </p>
             </div>
-          </div>
-
-          {totalRecords && blockSize && (
-            <p className="text-xs text-blue-700 bg-blue-50 rounded-lg px-3 py-2">
-              Se asignarán bloques de {blockSize} registros por persona automáticamente al unirse.
-            </p>
           )}
 
           {error && <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
 
           <div className="flex gap-3 pt-1">
-            <button
-              type="button"
-              onClick={close}
+            <button type="button" onClick={close}
               className="flex-1 py-2.5 rounded-lg border text-gray-700 font-medium"
               disabled={loading}
             >
               Cancelar
             </button>
-            <button
-              type="submit"
+            <button type="submit"
               className="flex-1 py-2.5 rounded-lg bg-gray-800 text-white font-semibold disabled:opacity-60"
               disabled={loading}
             >

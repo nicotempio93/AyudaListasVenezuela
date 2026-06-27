@@ -14,7 +14,7 @@ export async function POST(
   // Get list with participant count and range info
   const { data: list, error: listErr } = await supabase
     .from('lists')
-    .select('id, status, total_records, block_size, participants(id, range_to)')
+    .select('id, status, range_start, range_end, block_size, participants(id, range_to)')
     .eq('id', id)
     .single()
 
@@ -26,19 +26,19 @@ export async function POST(
     return NextResponse.json({ error: `La lista ya tiene ${MAX_PARTICIPANTS} participantes.` }, { status: 409 })
   }
 
-  // Calculate auto-assigned range if total_records and block_size are set
+  // Calculate auto-assigned range if range_start, range_end and block_size are set
   let range_from: number | null = null
   let range_to: number | null = null
 
-  if (list.total_records && list.block_size) {
+  if (list.range_start != null && list.range_end != null && list.block_size) {
     const lastRangeTo = participants.reduce(
-      (max, p) => Math.max(max, (p as { range_to: number | null }).range_to ?? 0),
-      0
+      (max, p) => Math.max(max, (p as { range_to: number | null }).range_to ?? (list.range_start! - 1)),
+      list.range_start - 1
     )
     range_from = lastRangeTo + 1
-    range_to = Math.min(range_from + list.block_size - 1, list.total_records)
+    range_to = Math.min(range_from + list.block_size - 1, list.range_end)
 
-    if (range_from > list.total_records) {
+    if (range_from > list.range_end) {
       return NextResponse.json(
         { error: 'Todos los registros ya están asignados. No hay más bloques disponibles.' },
         { status: 409 }
