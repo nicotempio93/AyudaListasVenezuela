@@ -32,6 +32,7 @@ export function ListCard({ list, onRefresh }: Props) {
   const [showJoin, setShowJoin] = useState(false)
   const [showComplete, setShowComplete] = useState(false)
   const [showWhatsapp, setShowWhatsapp] = useState(false)
+  const [leaveParticipant, setLeaveParticipant] = useState<{ id: string; name: string } | null>(null)
   const [actionError, setActionError] = useState('')
 
   const participants = list.participants ?? []
@@ -162,7 +163,7 @@ export function ListCard({ list, onRefresh }: Props) {
                 </div>
                 {!isCompleted && (
                   <button
-                    onClick={() => handleLeave(p.id)}
+                    onClick={() => setLeaveParticipant({ id: p.id, name: p.name })}
                     className="flex-shrink-0 text-xs text-red-500 hover:text-red-700 px-2 py-1 rounded hover:bg-red-50"
                   >
                     Salir
@@ -280,6 +281,30 @@ export function ListCard({ list, onRefresh }: Props) {
           onConfirm={handleWhatsapp}
           onClose={() => setShowWhatsapp(false)}
         />
+      )}
+      {leaveParticipant && (
+        <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-xl">
+            <h2 className="text-lg font-bold mb-1">Salir de la lista</h2>
+            <p className="text-sm text-gray-600 mb-6">
+              ¿Confirmás que <span className="font-semibold">{leaveParticipant.name}</span> quiere salir de esta lista?
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setLeaveParticipant(null)}
+                className="flex-1 py-2.5 rounded-lg border text-gray-700 font-medium"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => { handleLeave(leaveParticipant.id); setLeaveParticipant(null) }}
+                className="flex-1 py-2.5 rounded-lg bg-red-600 text-white font-semibold"
+              >
+                Salir
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   )
