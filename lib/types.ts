@@ -8,6 +8,7 @@ export interface Participant {
   range_from: number | null
   range_to: number | null
   joined_at: string
+  completed_at: string | null
 }
 
 export interface ListRow {

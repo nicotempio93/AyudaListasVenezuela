@@ -33,6 +33,7 @@ export function ListCard({ list, onRefresh }: Props) {
   const [showComplete, setShowComplete] = useState(false)
   const [showWhatsapp, setShowWhatsapp] = useState(false)
   const [leaveParticipant, setLeaveParticipant] = useState<{ id: string; name: string } | null>(null)
+  const [completeParticipant, setCompleteParticipant] = useState<{ id: string; name: string } | null>(null)
   const [actionError, setActionError] = useState('')
 
   const participants = list.participants ?? []
@@ -41,15 +42,12 @@ export function ListCard({ list, onRefresh }: Props) {
   const lastRangeTo = participants.reduce((max, p) => Math.max(max, p.range_to ?? -Infinity), -Infinity)
   const allRecordsAssigned = list.range_end != null && isFinite(lastRangeTo) && lastRangeTo >= list.range_end
 
-  // Coverage calculation
   const totalRecords = list.range_start != null && list.range_end != null
     ? list.range_end - list.range_start + 1
     : null
   const coveredRecords = totalRecords != null
     ? participants.reduce((sum, p) => {
-        if (p.range_from != null && p.range_to != null) {
-          return sum + (p.range_to - p.range_from + 1)
-        }
+        if (p.range_from != null && p.range_to != null) return sum + (p.range_to - p.range_from + 1)
         return sum
       }, 0)
     : null
@@ -74,6 +72,17 @@ export function ListCard({ list, onRefresh }: Props) {
     const res = await fetch(`/api/lists/${list.id}/leave/${pid}`, { method: 'DELETE' })
     const json = await res.json()
     if (!res.ok) { setActionError(json.error); return }
+    onRefresh()
+  }
+
+  async function handleParticipantComplete(pid: string) {
+    await fetch(`/api/lists/${list.id}/participants/${pid}/complete`, { method: 'POST' })
+    setCompleteParticipant(null)
+    onRefresh()
+  }
+
+  async function handleParticipantUncomplete(pid: string) {
+    await fetch(`/api/lists/${list.id}/participants/${pid}/complete`, { method: 'DELETE' })
     onRefresh()
   }
 
@@ -150,27 +159,62 @@ export function ListCard({ list, onRefresh }: Props) {
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
               Participantes ({participants.length}/10)
             </p>
-            {participants.map(p => (
-              <div key={p.id} className="flex items-center justify-between gap-2 bg-gray-50 rounded-lg px-3 py-2">
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-gray-800 truncate">{p.name}</p>
-                  {p.range_from != null && p.range_to != null && (
-                    <p className="text-xs font-semibold text-blue-600">
-                      Registros {p.range_from.toLocaleString()} – {p.range_to.toLocaleString()}
-                    </p>
-                  )}
-                  {p.contact && <p className="text-xs text-gray-500 truncate">{p.contact}</p>}
+            {participants.map(p => {
+              const done = !!p.completed_at
+              return (
+                <div
+                  key={p.id}
+                  className={`rounded-lg px-3 py-2 border ${done ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-transparent'}`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        {done && <span className="text-green-600 text-sm">✓</span>}
+                        <p className={`text-sm font-medium truncate ${done ? 'text-green-800' : 'text-gray-800'}`}>
+                          {p.name}
+                        </p>
+                      </div>
+                      {p.range_from != null && p.range_to != null && (
+                        <p className={`text-xs font-semibold ${done ? 'text-green-600' : 'text-blue-600'}`}>
+                          Registros {p.range_from.toLocaleString()} – {p.range_to.toLocaleString()}
+                          {done && ' · Completado'}
+                        </p>
+                      )}
+                      {p.contact && <p className="text-xs text-gray-500 truncate">{p.contact}</p>}
+                      {done && p.completed_at && (
+                        <p className="text-xs text-green-600">{fmtDate(p.completed_at)}</p>
+                      )}
+                    </div>
+
+                    {!isCompleted && (
+                      <div className="flex flex-col gap-1 flex-shrink-0">
+                        {!done ? (
+                          <button
+                            onClick={() => setCompleteParticipant({ id: p.id, name: p.name })}
+                            className="text-xs text-green-700 hover:text-green-900 px-2 py-1 rounded hover:bg-green-100 whitespace-nowrap"
+                          >
+                            Terminé
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleParticipantUncomplete(p.id)}
+                            className="text-xs text-gray-400 hover:text-gray-600 px-2 py-1 rounded hover:bg-gray-100 whitespace-nowrap"
+                          >
+                            Deshacer
+                          </button>
+                        )}
+                        <button
+                          onClick={() => setLeaveParticipant({ id: p.id, name: p.name })}
+                          className="text-xs text-red-500 hover:text-red-700 px-2 py-1 rounded hover:bg-red-50 whitespace-nowrap"
+                        >
+                          Salir
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                {!isCompleted && (
-                  <button
-                    onClick={() => setLeaveParticipant({ id: p.id, name: p.name })}
-                    className="flex-shrink-0 text-xs text-red-500 hover:text-red-700 px-2 py-1 rounded hover:bg-red-50"
-                  >
-                    Salir
-                  </button>
-                )}
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
 
@@ -178,26 +222,18 @@ export function ListCard({ list, onRefresh }: Props) {
         <div className="flex items-center gap-2">
           {list.whatsapp_group ? (
             <>
-              <a
-                href={list.whatsapp_group}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-green-700 font-medium hover:underline truncate"
-              >
+              <a href={list.whatsapp_group} target="_blank" rel="noopener noreferrer"
+                className="text-sm text-green-700 font-medium hover:underline truncate">
                 📱 Grupo de WhatsApp
               </a>
-              <button
-                onClick={() => setShowWhatsapp(true)}
-                className="text-xs text-gray-400 hover:text-gray-600 flex-shrink-0"
-              >
+              <button onClick={() => setShowWhatsapp(true)}
+                className="text-xs text-gray-400 hover:text-gray-600 flex-shrink-0">
                 Editar
               </button>
             </>
           ) : (
-            <button
-              onClick={() => setShowWhatsapp(true)}
-              className="text-sm text-gray-400 hover:text-green-700"
-            >
+            <button onClick={() => setShowWhatsapp(true)}
+              className="text-sm text-gray-400 hover:text-green-700">
               + Agregar grupo de WhatsApp
             </button>
           )}
@@ -214,45 +250,31 @@ export function ListCard({ list, onRefresh }: Props) {
         {/* Actions */}
         <div className="flex flex-wrap gap-2 pt-1">
           {list.file_url && (
-            <a
-              href={list.file_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-3 py-1.5 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50"
-            >
+            <a href={list.file_url} target="_blank" rel="noopener noreferrer"
+              className="px-3 py-1.5 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50">
               Abrir archivo
             </a>
           )}
-
           {!isCompleted && !isFull && !allRecordsAssigned && (
-            <button
-              onClick={() => setShowJoin(true)}
-              className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-sm font-semibold"
-            >
+            <button onClick={() => setShowJoin(true)}
+              className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-sm font-semibold">
               Unirse
             </button>
           )}
-
           {!isCompleted && (isFull || allRecordsAssigned) && (
             <span className="px-3 py-1.5 rounded-lg bg-gray-100 text-gray-500 text-sm">
               {allRecordsAssigned ? 'Todos los registros asignados' : 'Lista llena (10/10)'}
             </span>
           )}
-
           {list.status === 'claimed' && (
-            <button
-              onClick={() => setShowComplete(true)}
-              className="px-3 py-1.5 rounded-lg bg-green-600 text-white text-sm font-semibold"
-            >
-              Completar
+            <button onClick={() => setShowComplete(true)}
+              className="px-3 py-1.5 rounded-lg bg-green-600 text-white text-sm font-semibold">
+              Completar lista
             </button>
           )}
-
           {isCompleted && (
-            <button
-              onClick={handleUncomplete}
-              className="px-3 py-1.5 rounded-lg border border-gray-300 text-sm text-gray-600 hover:bg-gray-50"
-            >
+            <button onClick={handleUncomplete}
+              className="px-3 py-1.5 rounded-lg border border-gray-300 text-sm text-gray-600 hover:bg-gray-50">
               Reabrir
             </button>
           )}
@@ -260,28 +282,17 @@ export function ListCard({ list, onRefresh }: Props) {
       </div>
 
       {showJoin && (
-        <JoinModal
-          listId={list.id}
-          listTitle={list.title}
-          currentWhatsapp={list.whatsapp_group}
-          onConfirm={handleJoin}
-          onClose={() => setShowJoin(false)}
-        />
+        <JoinModal listId={list.id} listTitle={list.title} currentWhatsapp={list.whatsapp_group}
+          onConfirm={handleJoin} onClose={() => setShowJoin(false)} />
       )}
       {showComplete && (
-        <CompleteModal
-          listTitle={list.title}
-          onConfirm={handleComplete}
-          onClose={() => setShowComplete(false)}
-        />
+        <CompleteModal listTitle={list.title} onConfirm={handleComplete} onClose={() => setShowComplete(false)} />
       )}
       {showWhatsapp && (
-        <WhatsappModal
-          current={list.whatsapp_group}
-          onConfirm={handleWhatsapp}
-          onClose={() => setShowWhatsapp(false)}
-        />
+        <WhatsappModal current={list.whatsapp_group} onConfirm={handleWhatsapp} onClose={() => setShowWhatsapp(false)} />
       )}
+
+      {/* Confirm leave */}
       {leaveParticipant && (
         <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-xl">
@@ -290,19 +301,41 @@ export function ListCard({ list, onRefresh }: Props) {
               ¿Confirmás que <span className="font-semibold">{leaveParticipant.name}</span> quiere salir de esta lista?
             </p>
             <div className="flex gap-3">
-              <button
-                onClick={() => setLeaveParticipant(null)}
-                className="flex-1 py-2.5 rounded-lg border text-gray-700 font-medium"
-              >
+              <button onClick={() => setLeaveParticipant(null)}
+                className="flex-1 py-2.5 rounded-lg border text-gray-700 font-medium">
                 Cancelar
               </button>
-              <button
-                onClick={() => { handleLeave(leaveParticipant.id); setLeaveParticipant(null) }}
-                className="flex-1 py-2.5 rounded-lg bg-red-600 text-white font-semibold"
-              >
+              <button onClick={() => { handleLeave(leaveParticipant.id); setLeaveParticipant(null) }}
+                className="flex-1 py-2.5 rounded-lg bg-red-600 text-white font-semibold">
                 Salir
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm participant complete */}
+      {completeParticipant && (
+        <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-xl text-center">
+            <p className="text-4xl mb-3">✅</p>
+            <h2 className="text-lg font-bold mb-2">
+              {completeParticipant.name}, ¿terminaste con tus asignados?
+            </h2>
+            <p className="text-sm text-gray-500 mb-6">
+              Tu bloque quedará marcado como completado.
+            </p>
+            <div className="flex gap-3 mb-4">
+              <button onClick={() => setCompleteParticipant(null)}
+                className="flex-1 py-2.5 rounded-lg border text-gray-700 font-medium text-lg">
+                No
+              </button>
+              <button onClick={() => handleParticipantComplete(completeParticipant.id)}
+                className="flex-1 py-2.5 rounded-lg bg-green-600 text-white font-semibold text-lg">
+                Sí
+              </button>
+            </div>
+            <p className="text-sm text-gray-500">Gracias por ayudar a Venezuela 🇻🇪❤️</p>
           </div>
         </div>
       )}
