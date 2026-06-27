@@ -1,36 +1,88 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Coordinador de listas
 
-## Getting Started
+Simple public coordination board for volunteer list-loading. Prevents duplicated work by letting volunteers claim lists atomically.
 
-First, run the development server:
+## Setup
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+### 1. Supabase project
+
+Create a free project at [supabase.com](https://supabase.com).
+
+**Run the SQL migration** in the Supabase SQL editor:
+
+```
+supabase/migrations/001_create_lists.sql
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+**Create the storage bucket** in the Supabase dashboard:
+- Go to Storage → New bucket
+- Name: `lists`
+- Public: ✅ enabled
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Or run in the SQL editor:
+```sql
+insert into storage.buckets (id, name, public) values ('lists', 'lists', true);
+create policy "Public read storage" on storage.objects for select using (bucket_id = 'lists');
+create policy "Public upload storage" on storage.objects for insert with check (bucket_id = 'lists');
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+**Enable Realtime** for the `lists` table:
+- Go to Database → Replication
+- Enable replication for the `lists` table
 
-## Learn More
+### 2. Environment variables
 
-To learn more about Next.js, take a look at the following resources:
+Copy `.env.local.example` to `.env.local` and fill in your values:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Both values are found in Supabase → Project Settings → API.
 
-## Deploy on Vercel
+### 3. Run locally
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+npm install
+npm run dev
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Open http://localhost:3000
+
+### 4. Deploy
+
+Deploy to Vercel, Netlify, or any platform that supports Next.js. Add the two env vars in the platform's dashboard.
+
+## Usage
+
+- **Subir lista** (top-right): Upload a file and give it a title. Accepted formats: images, PDF, Excel, CSV, Word.
+- **Tomar lista**: Volunteer enters their name/team and optional contact to claim a list.
+- **Completar**: Marks the list as fully loaded.
+- **Liberar**: Returns a claimed list to available (if a volunteer can no longer work it).
+- Updates are real-time — all volunteers see changes without refreshing.
+
+## Architecture
+
+```
+app/
+  page.tsx              — main dashboard (client, realtime)
+  api/
+    lists/route.ts       — GET all, POST create
+    lists/[id]/claim/    — atomic claim (only if status=available)
+    lists/[id]/release/  — release back to available
+    lists/[id]/complete/ — mark completed
+    upload/route.ts      — upload to Supabase Storage + insert row
+components/
+  ListCard.tsx           — card with all actions
+  ClaimModal.tsx         — claim form modal
+  CompleteModal.tsx      — confirm complete modal
+  UploadForm.tsx         — upload modal
+  StatusBadge.tsx        — colored status chip
+lib/
+  types.ts               — shared TypeScript types
+  supabase/client.ts     — browser Supabase client
+  supabase/server.ts     — server Supabase client
+supabase/
+  migrations/001_create_lists.sql
+```
