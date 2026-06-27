@@ -5,6 +5,8 @@ export interface Participant {
   list_id: string
   name: string
   contact: string | null
+  range_from: number | null
+  range_to: number | null
   joined_at: string
 }
 
@@ -16,6 +18,8 @@ export interface ListRow {
   file_type: string | null
   status: ListStatus
   whatsapp_group: string | null
+  total_records: number | null
+  block_size: number | null
   // legacy fields kept for DB compat
   claimed_by: string | null
   claimed_contact: string | null

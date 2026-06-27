@@ -1,19 +1,28 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 interface Props {
+  listId: string
   listTitle: string
   currentWhatsapp: string | null
   onConfirm: (name: string, contact: string, whatsapp: string) => Promise<void>
   onClose: () => void
 }
 
-export function JoinModal({ listTitle, currentWhatsapp, onConfirm, onClose }: Props) {
+export function JoinModal({ listId, listTitle, currentWhatsapp, onConfirm, onClose }: Props) {
   const [name, setName] = useState('')
   const [contact, setContact] = useState('')
   const [whatsapp, setWhatsapp] = useState(currentWhatsapp ?? '')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [nextRange, setNextRange] = useState<{ range_from: number | null; range_to: number | null; full?: boolean } | null>(null)
+
+  useEffect(() => {
+    fetch(`/api/lists/${listId}/next-range`)
+      .then(r => r.json())
+      .then(setNextRange)
+      .catch(() => {})
+  }, [listId])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -33,6 +42,16 @@ export function JoinModal({ listTitle, currentWhatsapp, onConfirm, onClose }: Pr
       <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-xl">
         <h2 className="text-lg font-bold mb-1">Unirse a la lista</h2>
         <p className="text-sm text-gray-500 mb-4 truncate">{listTitle}</p>
+
+        {/* Range preview */}
+        {nextRange?.range_from != null && nextRange?.range_to != null && (
+          <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 mb-4">
+            <p className="text-sm font-semibold text-blue-800">Registros asignados automáticamente:</p>
+            <p className="text-2xl font-bold text-blue-700 mt-0.5">
+              {nextRange.range_from.toLocaleString()} — {nextRange.range_to.toLocaleString()}
+            </p>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -70,9 +89,6 @@ export function JoinModal({ listTitle, currentWhatsapp, onConfirm, onClose }: Pr
               value={whatsapp}
               onChange={e => setWhatsapp(e.target.value)}
             />
-            {currentWhatsapp && (
-              <p className="text-xs text-gray-400 mt-1">Ya hay un link guardado. Podés dejarlo igual o actualizarlo.</p>
-            )}
           </div>
 
           {error && <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>}

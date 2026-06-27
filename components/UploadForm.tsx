@@ -11,6 +11,8 @@ export function UploadForm({ onUploaded }: Props) {
   const [open, setOpen] = useState(false)
   const [file, setFile] = useState<File | null>(null)
   const [title, setTitle] = useState('')
+  const [totalRecords, setTotalRecords] = useState('')
+  const [blockSize, setBlockSize] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
@@ -21,6 +23,20 @@ export function UploadForm({ onUploaded }: Props) {
     if (f && !title) setTitle(f.name.replace(/\.[^.]+$/, ''))
   }
 
+  function handleTotalRecordsChange(val: string) {
+    setTotalRecords(val)
+    const n = parseInt(val, 10)
+    if (n > 0 && !blockSize) {
+      setBlockSize(String(Math.ceil(n / 10)))
+    }
+  }
+
+  function close() {
+    setOpen(false); setFile(null); setTitle('')
+    setTotalRecords(''); setBlockSize(''); setError('')
+    if (inputRef.current) inputRef.current.value = ''
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!file || !title.trim()) { setError('Archivo y título requeridos.'); return }
@@ -29,14 +45,13 @@ export function UploadForm({ onUploaded }: Props) {
     const fd = new FormData()
     fd.append('file', file)
     fd.append('title', title.trim())
+    if (totalRecords) fd.append('total_records', totalRecords)
+    if (blockSize) fd.append('block_size', blockSize)
     const res = await fetch('/api/upload', { method: 'POST', body: fd })
     const json = await res.json()
     if (!res.ok) { setError(json.error); setLoading(false); return }
-    setOpen(false)
-    setFile(null)
-    setTitle('')
+    close()
     setLoading(false)
-    if (inputRef.current) inputRef.current.value = ''
     onUploaded()
   }
 
@@ -68,6 +83,7 @@ export function UploadForm({ onUploaded }: Props) {
               className="w-full text-sm text-gray-700 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border file:border-gray-300 file:text-sm file:font-medium file:bg-white hover:file:bg-gray-50"
             />
           </div>
+
           <div>
             <label className="block text-sm font-medium mb-1">
               Título <span className="text-red-500">*</span>
@@ -79,11 +95,49 @@ export function UploadForm({ onUploaded }: Props) {
               onChange={e => setTitle(e.target.value)}
             />
           </div>
+
+          <div className="flex gap-3">
+            <div className="flex-1">
+              <label className="block text-sm font-medium mb-1">
+                Total de registros <span className="text-gray-400 font-normal">(opcional)</span>
+              </label>
+              <input
+                type="number"
+                min="1"
+                className="w-full border rounded-lg px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Ej: 1000"
+                value={totalRecords}
+                onChange={e => handleTotalRecordsChange(e.target.value)}
+              />
+            </div>
+            <div className="flex-1">
+              <label className="block text-sm font-medium mb-1">
+                Registros por persona
+              </label>
+              <input
+                type="number"
+                min="1"
+                className="w-full border rounded-lg px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-400"
+                placeholder="Auto"
+                value={blockSize}
+                onChange={e => setBlockSize(e.target.value)}
+                disabled={!totalRecords}
+              />
+            </div>
+          </div>
+
+          {totalRecords && blockSize && (
+            <p className="text-xs text-blue-700 bg-blue-50 rounded-lg px-3 py-2">
+              Se asignarán bloques de {blockSize} registros por persona automáticamente al unirse.
+            </p>
+          )}
+
           {error && <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
+
           <div className="flex gap-3 pt-1">
             <button
               type="button"
-              onClick={() => { setOpen(false); setFile(null); setTitle(''); setError('') }}
+              onClick={close}
               className="flex-1 py-2.5 rounded-lg border text-gray-700 font-medium"
               disabled={loading}
             >

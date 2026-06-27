@@ -5,6 +5,11 @@ export async function POST(request: Request) {
   const formData = await request.formData()
   const file = formData.get('file') as File | null
   const title = formData.get('title') as string | null
+  const totalRecordsRaw = formData.get('total_records') as string | null
+  const blockSizeRaw = formData.get('block_size') as string | null
+
+  const total_records = totalRecordsRaw ? parseInt(totalRecordsRaw, 10) : null
+  const block_size = blockSizeRaw ? parseInt(blockSizeRaw, 10) : null
 
   if (!file || !title) {
     return NextResponse.json({ error: 'Archivo y título requeridos.' }, { status: 400 })
@@ -33,6 +38,8 @@ export async function POST(request: Request) {
       file_path: filePath,
       file_url: urlData.publicUrl,
       file_type: ext.toLowerCase(),
+      total_records: total_records ?? null,
+      block_size: block_size ?? null,
     })
     .select()
     .single()

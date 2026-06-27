@@ -38,6 +38,19 @@ export function ListCard({ list, onRefresh }: Props) {
   const isFull = participants.length >= 10
   const isCompleted = list.status === 'completed'
 
+  // Coverage calculation
+  const coveredRecords = list.total_records
+    ? participants.reduce((sum, p) => {
+        if (p.range_from != null && p.range_to != null) {
+          return sum + (p.range_to - p.range_from + 1)
+        }
+        return sum
+      }, 0)
+    : null
+  const coveragePct = list.total_records && coveredRecords != null
+    ? Math.min(100, Math.round((coveredRecords / list.total_records) * 100))
+    : null
+
   async function handleJoin(name: string, contact: string, whatsapp: string) {
     const res = await fetch(`/api/lists/${list.id}/join`, {
       method: 'POST',
@@ -101,6 +114,29 @@ export function ListCard({ list, onRefresh }: Props) {
           <StatusBadge status={list.status} />
         </div>
 
+        {/* Coverage bar */}
+        {list.total_records != null && (
+          <div>
+            <div className="flex justify-between items-center mb-1">
+              <span className="text-xs text-gray-500">
+                {coveredRecords?.toLocaleString() ?? 0} / {list.total_records.toLocaleString()} registros cubiertos
+              </span>
+              <span className="text-xs font-semibold text-gray-600">{coveragePct ?? 0}%</span>
+            </div>
+            <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-blue-500 rounded-full transition-all"
+                style={{ width: `${coveragePct ?? 0}%` }}
+              />
+            </div>
+            {list.block_size && (
+              <p className="text-xs text-gray-400 mt-1">
+                Bloques de {list.block_size.toLocaleString()} registros por persona
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Participants */}
         {participants.length > 0 && (
           <div className="space-y-1.5">
@@ -111,14 +147,17 @@ export function ListCard({ list, onRefresh }: Props) {
               <div key={p.id} className="flex items-center justify-between gap-2 bg-gray-50 rounded-lg px-3 py-2">
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-gray-800 truncate">{p.name}</p>
+                  {p.range_from != null && p.range_to != null && (
+                    <p className="text-xs font-semibold text-blue-600">
+                      Registros {p.range_from.toLocaleString()} – {p.range_to.toLocaleString()}
+                    </p>
+                  )}
                   {p.contact && <p className="text-xs text-gray-500 truncate">{p.contact}</p>}
-                  <p className="text-xs text-gray-400">{fmtDate(p.joined_at)}</p>
                 </div>
                 {!isCompleted && (
                   <button
                     onClick={() => handleLeave(p.id)}
                     className="flex-shrink-0 text-xs text-red-500 hover:text-red-700 px-2 py-1 rounded hover:bg-red-50"
-                    title="Quitar"
                   >
                     Salir
                   </button>
@@ -215,6 +254,7 @@ export function ListCard({ list, onRefresh }: Props) {
 
       {showJoin && (
         <JoinModal
+          listId={list.id}
           listTitle={list.title}
           currentWhatsapp={list.whatsapp_group}
           onConfirm={handleJoin}
