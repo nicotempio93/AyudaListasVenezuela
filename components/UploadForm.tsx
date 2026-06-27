@@ -13,7 +13,7 @@ export function UploadForm({ onUploaded }: Props) {
   const [open, setOpen] = useState(false)
   const [file, setFile] = useState<File | null>(null)
   const [title, setTitle] = useState('')
-  const [assignmentType, setAssignmentType] = useState<AssignmentType>('records')
+  const [assignmentType, setAssignmentType] = useState<AssignmentType>('pages')
   const [rangeStart, setRangeStart] = useState('')
   const [rangeEnd, setRangeEnd] = useState('')
   const [totalPages, setTotalPages] = useState('')
