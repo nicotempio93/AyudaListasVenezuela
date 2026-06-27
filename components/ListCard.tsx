@@ -37,6 +37,8 @@ export function ListCard({ list, onRefresh }: Props) {
   const participants = list.participants ?? []
   const isFull = participants.length >= 10
   const isCompleted = list.status === 'completed'
+  const lastRangeTo = participants.reduce((max, p) => Math.max(max, p.range_to ?? -Infinity), -Infinity)
+  const allRecordsAssigned = list.range_end != null && isFinite(lastRangeTo) && lastRangeTo >= list.range_end
 
   // Coverage calculation
   const totalRecords = list.range_start != null && list.range_end != null
@@ -221,7 +223,7 @@ export function ListCard({ list, onRefresh }: Props) {
             </a>
           )}
 
-          {!isCompleted && !isFull && (
+          {!isCompleted && !isFull && !allRecordsAssigned && (
             <button
               onClick={() => setShowJoin(true)}
               className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-sm font-semibold"
@@ -230,9 +232,9 @@ export function ListCard({ list, onRefresh }: Props) {
             </button>
           )}
 
-          {isFull && !isCompleted && (
+          {!isCompleted && (isFull || allRecordsAssigned) && (
             <span className="px-3 py-1.5 rounded-lg bg-gray-100 text-gray-500 text-sm">
-              Lista llena (10/10)
+              {allRecordsAssigned ? 'Todos los registros asignados' : 'Lista llena (10/10)'}
             </span>
           )}
 
