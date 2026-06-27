@@ -64,7 +64,9 @@ export default function Home() {
       <header className="bg-white border-b sticky top-0 z-10">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
           <div>
-            <h1 className="text-lg font-bold text-gray-900 leading-tight">Coordinador de listas</h1>
+            <h1 className="text-lg font-bold text-gray-900 leading-tight">
+              🇻🇪 Coordinador de listas ❤️
+            </h1>
             <p className="text-xs text-gray-500">{counts.all} listas en total</p>
           </div>
           <UploadForm onUploaded={fetchLists} />
