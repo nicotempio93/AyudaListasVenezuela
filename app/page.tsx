@@ -3,7 +3,6 @@ import { useEffect, useState, useCallback } from 'react'
 import { ListRow, ListStatus } from '@/lib/types'
 import { createClient } from '@/lib/supabase/client'
 import { ListCard } from '@/components/ListCard'
-import { UploadForm } from '@/components/UploadForm'
 
 type Tab = 'all' | ListStatus
 
@@ -20,11 +19,6 @@ export default function Home() {
   const [lists, setLists] = useState<ListRow[]>([])
   const [tab, setTab] = useState<Tab>('all')
   const [loading, setLoading] = useState(true)
-  const [isAdmin, setIsAdmin] = useState(false)
-
-  useEffect(() => {
-    setIsAdmin(localStorage.getItem('admin_unlocked') === 'true')
-  }, [])
 
   const fetchLists = useCallback(async () => {
     const res = await fetch('/api/lists')
@@ -70,7 +64,6 @@ export default function Home() {
             </h1>
             <p className="text-xs text-gray-500">{counts.all} listas en total</p>
           </div>
-          {isAdmin && <UploadForm onUploaded={fetchLists} />}
         </div>
       </header>
 

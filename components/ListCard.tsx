@@ -26,15 +26,18 @@ function fmtDate(iso: string | null) {
 interface Props {
   list: ListRow
   onRefresh: () => void
+  isAdmin?: boolean
 }
 
-export function ListCard({ list, onRefresh }: Props) {
+export function ListCard({ list, onRefresh, isAdmin }: Props) {
   const [showJoin, setShowJoin] = useState(false)
   const [showComplete, setShowComplete] = useState(false)
   const [showWhatsapp, setShowWhatsapp] = useState(false)
   const [leaveParticipant, setLeaveParticipant] = useState<{ id: string; name: string } | null>(null)
   const [completeParticipant, setCompleteParticipant] = useState<{ id: string; name: string } | null>(null)
   const [actionError, setActionError] = useState('')
+  const [editingTitle, setEditingTitle] = useState(false)
+  const [titleValue, setTitleValue] = useState(list.title)
 
   const participants = list.participants ?? []
   const isFull = participants.length >= 10
@@ -109,6 +112,18 @@ export function ListCard({ list, onRefresh }: Props) {
     onRefresh()
   }
 
+  async function handleSaveTitle() {
+    const trimmed = titleValue.trim()
+    if (!trimmed || trimmed === list.title) { setEditingTitle(false); setTitleValue(list.title); return }
+    await fetch(`/api/lists/${list.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: trimmed }),
+    })
+    setEditingTitle(false)
+    onRefresh()
+  }
+
   async function handleWhatsapp(link: string) {
     const res = await fetch(`/api/lists/${list.id}/whatsapp`, {
       method: 'PATCH',
@@ -128,8 +143,30 @@ export function ListCard({ list, onRefresh }: Props) {
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
             <span className="text-xl flex-shrink-0">{fileIcon(list.file_type)}</span>
-            <div className="min-w-0">
-              <p className="font-semibold text-gray-900 truncate">{list.title}</p>
+            <div className="min-w-0 flex-1">
+              {editingTitle ? (
+                <input
+                  autoFocus
+                  className="w-full font-semibold text-gray-900 border-b-2 border-blue-500 outline-none bg-transparent pb-0.5"
+                  value={titleValue}
+                  onChange={e => setTitleValue(e.target.value)}
+                  onBlur={handleSaveTitle}
+                  onKeyDown={e => { if (e.key === 'Enter') handleSaveTitle(); if (e.key === 'Escape') { setEditingTitle(false); setTitleValue(list.title) } }}
+                />
+              ) : (
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <p className="font-semibold text-gray-900 truncate">{list.title}</p>
+                  {isAdmin && (
+                    <button
+                      onClick={() => { setEditingTitle(true); setTitleValue(list.title) }}
+                      className="flex-shrink-0 text-gray-300 hover:text-gray-500 text-base leading-none"
+                      title="Editar título"
+                    >
+                      ✏️
+                    </button>
+                  )}
+                </div>
+              )}
               {list.file_type && <p className="text-xs text-gray-400 uppercase">{list.file_type}</p>}
             </div>
           </div>
