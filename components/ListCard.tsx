@@ -251,7 +251,7 @@ export function ListCard({ list, onRefresh }: Props) {
         <div className="flex flex-wrap gap-2 pt-1">
           {list.file_url && (
             <a href={list.file_url} target="_blank" rel="noopener noreferrer"
-              className="px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700">
+              className="px-3 py-1.5 rounded-lg bg-yellow-400 text-gray-900 text-sm font-semibold hover:bg-yellow-500">
               Ver lista
             </a>
           )}
