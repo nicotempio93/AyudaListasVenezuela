@@ -79,13 +79,17 @@ export function ListCard({ list, onRefresh }: Props) {
   }
 
   async function handleParticipantComplete(pid: string) {
-    await fetch(`/api/lists/${list.id}/participants/${pid}/complete`, { method: 'POST' })
+    const res = await fetch(`/api/lists/${list.id}/participants/${pid}/complete`, { method: 'POST' })
+    const json = await res.json()
+    if (!res.ok) { setActionError(json.error); return }
     setCompleteParticipant(null)
     onRefresh()
   }
 
   async function handleParticipantUncomplete(pid: string) {
-    await fetch(`/api/lists/${list.id}/participants/${pid}/complete`, { method: 'DELETE' })
+    const res = await fetch(`/api/lists/${list.id}/participants/${pid}/complete`, { method: 'DELETE' })
+    const json = await res.json()
+    if (!res.ok) { setActionError(json.error); return }
     onRefresh()
   }
 
