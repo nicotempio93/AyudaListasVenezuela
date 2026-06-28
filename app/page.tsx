@@ -40,6 +40,7 @@ export default function Home() {
     const channel = supabase
       .channel('lists-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'lists' }, () => fetchLists())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'participants' }, () => fetchLists())
       .subscribe()
 
     return () => { supabase.removeChannel(channel) }

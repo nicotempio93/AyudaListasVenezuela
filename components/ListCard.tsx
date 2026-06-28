@@ -41,6 +41,9 @@ export function ListCard({ list, onRefresh }: Props) {
   const isCompleted = list.status === 'completed'
   const lastRangeTo = participants.reduce((max, p) => Math.max(max, p.range_to ?? -Infinity), -Infinity)
   const allRecordsAssigned = list.range_end != null && isFinite(lastRangeTo) && lastRangeTo >= list.range_end
+  const allParticipantsDone = participants.length > 0 && participants.every(p => !!p.completed_at)
+  const hasRanges = list.range_start != null && list.range_end != null
+  const canCompleteList = list.status === 'claimed' && allParticipantsDone && (!hasRanges || allRecordsAssigned)
 
   const totalRecords = list.range_start != null && list.range_end != null
     ? list.range_end - list.range_start + 1
@@ -266,10 +269,10 @@ export function ListCard({ list, onRefresh }: Props) {
               {allRecordsAssigned ? 'Todos los registros asignados' : 'Lista llena (10/10)'}
             </span>
           )}
-          {list.status === 'claimed' && (
+          {canCompleteList && (
             <button onClick={() => setShowComplete(true)}
               className="px-3 py-1.5 rounded-lg bg-green-600 text-white text-sm font-semibold">
-              Completar lista
+              ✓ 100% de la lista completada
             </button>
           )}
           {isCompleted && (
